@@ -4,6 +4,13 @@ import time
 import Adafruit_GPIO.SPI as SPI
 import Adafruit_MCP3008
 
+def writeToFileCalibrate(strData):
+  calibOutFile = open("CalibOut.txt","a")
+  strr = str(strData)
+  calibOutFile.writelines(strr)
+  calibOutFile.close()
+  
+
 def readAChanSR(mcp,moyenne=False,nb=10):
   """
   Fais la moyenne en lisant nb fois les 8 canaux
@@ -83,20 +90,19 @@ def readChanSR(mcp,chan,moyenne=False):
     Lis et retourne la distance SR d'un canal en faisant la moyenne
     ou pas du canal chan
     """
-    strr = 'DistSR CH'+str(chan)+': %d\n'
     adcData = 0
-    # Fait la moyenne des lectures du canal en lisant 10 valeurs
-    if moyenne == True:
+    
+    if moyenne == True: # Moyenne en lisant 10 valeurs
         for i in range(10):
             adcData += distSR(mcp.read_adc(chan))
 
         adcData = adcData/10
-        print(strr % adcData)
+        print('DistSR CH'+str(chan)+': %d\n' % adcData)
         return adcData
 
     else: # Lis les valeurs du canal chan
         adcData = distSR(mcp.read_adc(chan))
-        print(strr % adcData)
+        print('DistSR CH'+str(chan)+': %d\n' % adcData)
         return adcData
 
 def readChanLR(mcp,chan,moyenne=False):    
@@ -104,32 +110,42 @@ def readChanLR(mcp,chan,moyenne=False):
     Lis et retourne la distance LR d'un canal en faisant la moyenne
     ou pas du canal chan
     """
-    strr = 'DistLR CH'+str(chan)+': %d\n'
     adcData = 0
-    # Fait la moyenne des lectures du canal en lisant 10 valeurs
-    if moyenne == True:
+    
+    if moyenne == True: # Moyenne en lisant 10 valeurs
         for i in range(10):
             adcData += distLR(mcp.read_adc(chan))
-
         adcData = adcData/10
-        print(strr % adcData)
+        print('DistLR CH'+str(chan)+': %d\n' % adcData)
         return adcData
       
     else: # Lit les valeurs du canal
         adcData = distLR(mcp.read_adc(chan))
 
-        print(strr % adcData)
+        print('DistLR CH'+str(chan)+': %d\n' % adcData)
+
+        # Calibrate
+        strr = str(dataToVolt(mcp.read_adc(chan)))+'  '+str(1/adcData)+'\n'
+        
+        writeToFileCalibrate(strr)
+        
         return adcData
+
+def dataToVolt(data):
+    Vref = 3.3
+    volt = (data*Vref)/1024
+    return volt
 
 def distLR(data):
     """Calcul de la distance Long Range"""
+    # Conversion en volts
+    volt = dataToVolt(data)
+    
     # Approximation lineaire
     Vref = 3.3;
     a = (1/0.007)
     b = 2.5 - a*0.01
-    # Conversion en volts
-    volt = (data*Vref)/1024
-    #print('Volt: %f -- Data: %f\n' % (volt,data))
+    
     freqSpatial = (volt-b)/a
     # Approximation polynomial
     #freqSpatial = -0.0009*volt**4 + 0.0102*volt**3 - 0.0377*volt**2 + 0.0651*volt - 0.0395
@@ -137,7 +153,7 @@ def distLR(data):
 
     if dist < 0: # Force to zero negative values
       dist = 0
-    #print('Distance: %f\n' % dist)    
+      
     return dist
 
 def distSR(data):
@@ -174,8 +190,8 @@ if __name__ =='__main__':
         # end = time.time()
         # duration = end - start
         # print(duration)
-        dist = readAChanLR(mcp1,True)
-        time.sleep(0.1)
+        dist = readChanLR(mcp1,0)
+        time.sleep(5)
 
         # Le temps de lectur est approximativement de 0.05s - 50ms
         # To Do: Tester short distance IR
