@@ -125,7 +125,7 @@ def readChanLR(mcp,chan,moyenne=False):
         print('DistLR CH'+str(chan)+': %d\n' % adcData)
 
         # Calibrate
-        strr = str(dataToVolt(mcp.read_adc(chan)))+'  '+str(1/adcData)+'\n'
+        strr = str(dataToVolt(mcp.read_adc(chan)))+'\t'+str(1/adcData)+'\n'
         
         writeToFileCalibrate(strr)
         
